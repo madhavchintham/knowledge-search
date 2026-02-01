@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: knowledge-search
+
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        options:
+          model: gpt-4o
+    vectorstore:
+      pgvector:
+        initialize-schema: true
+confluence:
+  username: madhav.new26@gmail.com
+  api-token: ${CONFLUENCE_API_TOKEN}
+  base-url: https://madhavnew26.atlassian.net/wiki
+  space-id: ${CONFLUENCE_SPACE_ID:5455892B}
