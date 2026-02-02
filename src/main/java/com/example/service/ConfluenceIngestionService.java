@@ -15,7 +15,10 @@ import com.example.model.ConfluencePage;
 import com.example.model.ConfluencePageResponse;
 import com.example.model.PageResult;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Service
+@Slf4j
 public class ConfluenceIngestionService {
 
     private final WebClient confluenceWebClient;
@@ -35,6 +38,7 @@ public class ConfluenceIngestionService {
     }
 
     public List<ConfluencePage> fetchPages() {
+        log.info("Fetching pages from Confluence space: {}", spaceId);
         ConfluencePageResponse response = confluenceWebClient.get()
                 .uri(uriBuilder -> uriBuilder.path("/api/v2/pages")
                         .queryParam("space-id", spaceId)
@@ -45,15 +49,15 @@ public class ConfluenceIngestionService {
                 .bodyToMono(ConfluencePageResponse.class)
                 .block();
         if (response == null || response.results() == null || response.results().isEmpty()) {
-            System.out.println("No pages found in the specified space.");
+            log.info("No pages found in the specified space.");
             return List.of();
         }
         return response.results().stream()
-                .map(this::toDomain)
+                .map(this::toConfluencePage)
                 .toList();
     }
 
-    private ConfluencePage toDomain(PageResult page) {
+    private ConfluencePage toConfluencePage(PageResult page) {
         ConfluencePage confluencePage = new ConfluencePage(
                 page.id(),
                 page.title(),
@@ -68,9 +72,15 @@ public class ConfluenceIngestionService {
         for (ConfluencePage page : pages) {
             String cleanText = Jsoup.parse(page.htmlContent()).text();
             if (cleanText.isBlank()) {
+                log.info("Skipping empty page content for page ID: {}", page.id());
                 continue;
             }
             Document doc = new Document(cleanText);
+            doc.getMetadata().put("source", "confluence");
+            doc.getMetadata().put("pageId", page.id());
+            doc.getMetadata().put("title", page.title());
+            doc.getMetadata().put("url", page.url());
+            doc.getMetadata().put("spaceId", page.spaceId());
             List<Document> chunks = textSplitter.split(doc);
             vectorStore.add(chunks);
         }
