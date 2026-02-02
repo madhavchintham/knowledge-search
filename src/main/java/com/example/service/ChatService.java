@@ -45,7 +45,6 @@ public class ChatService {
             %s
             """.formatted(context, query));
 
-        // 4️⃣ Call LLM
         return chatModel.call(prompt).getResult().getOutput().getText();
     }
     
