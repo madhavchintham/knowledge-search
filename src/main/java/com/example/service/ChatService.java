@@ -2,6 +2,7 @@ package com.example.service;
 
 import java.util.List;
 import java.util.Vector;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.springframework.ai.chat.model.ChatModel;
@@ -10,6 +11,8 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
+
+import com.example.model.ChatResponse;
 
 @Service
 public class ChatService {
@@ -27,7 +30,7 @@ public class ChatService {
         return vectorStore.similaritySearch(searchRequest);
     }
 
-    public String chat(String query) {
+    public ChatResponse chat(String query) {
         List<Document> similarDocuments = getSimilarDocuments(query);
         String context = similarDocuments.stream()
                 .map(Document::getText)
@@ -45,7 +48,13 @@ public class ChatService {
             %s
             """.formatted(context, query));
 
-        return chatModel.call(prompt).getResult().getOutput().getText();
-    }
+    return new ChatResponse(
+            chatModel.call(prompt).getResult().getOutput().getText(),
+            similarDocuments.stream()
+                    .map(doc -> (String) doc.getMetadata().get("url"))
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList())
+    );
+ }
     
 }
